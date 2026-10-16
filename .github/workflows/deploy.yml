@@ -3,6 +3,7 @@ name: Deploy Vue Site to GitHub Pages
 on:
   push:
     branches: [ main ] # 监听 main 分支的提交：每次 push 都自动重新构建并发布
+  workflow_dispatch: # 允许在 Actions 页面手动点「Run workflow」触发（推送事件没触发时的兜底）
 
 # GitHub Pages 的官方部署方式要求在 workflow 里显式声明这三项权限
 permissions:
