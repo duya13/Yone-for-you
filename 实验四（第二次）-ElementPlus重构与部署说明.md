@@ -174,9 +174,22 @@ git -C D:\vue\vue-project push -u origin main
   填 `D:\新建文件夹 (2)\WorkBuddy\resources\vendor\PortableGit\mingw64\bin\git.exe`），
   再在「源代码管理」面板点「发布分支」。
 - 如果想一劳永逸（以后任何终端都能直接用 `git`），把上面那两个目录写进「用户环境变量 Path」即可。
+- **为什么这一步不能由 WorkBuddy 代劳**：本机的运行环境里带了一层本地代理
+  （`http_proxy=http://127.0.0.1:55912`），GitHub 的网页能访问，但 git 协议端点会被代理拒绝
+  （`curl 7 CONNECT tunnel failed, response 502`），绕开代理直连又会超时。
+  所以推送必须在**你自己的终端**里执行 —— 那里没有这层代理。
+- 另外，凭据助手已配好（`credential.helper=manager`），登录一次即可；
+  我没有写入任何 token 到仓库或配置文件里。
 
-> 本地提交（3 个）：`9df8176 feat…` → `a54a320 docs…` → `5ca1c31 docs…`
+> 本地提交（5 个）：
+> `f00dbbe feat: 实验四 —— Pinia 状态管理 + Element Plus 重构 + GitHub Pages 自动部署`
+> → `3c5bfd9 docs: 补充实验四（第二次）说明文档、README 重写、About 页新增组件清单`
+> → `fb8abfc docs: 第一次实验文档补充第二次实验与仓库指引`
+> → `90e9de6 docs: 补充 PortableGit 推送指引`
+> → `446b36f docs: 提交邮箱更正为 GitHub 绑定邮箱`
+>
 > 远程已绑定：`origin → https://github.com/duya13/Yone-for-you.git`
+> 提交身份：`duya13 <528949034@qq.com>`（与 GitHub 账号绑定邮箱一致，提交会关联到账号）
 
 **第 2 步：在仓库里开启 Pages**
 
