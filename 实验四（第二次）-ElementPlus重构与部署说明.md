@@ -237,6 +237,8 @@ GitHub 仓库页面 → **Settings** → 左侧 **Pages** → **Build and deploy
   `ProjectGrid` / `ProjectToolbar` / `BackToTop` 等仍在使用。它们是实验二、三的成果，
   且部分承担「插槽 / 组件通信」的教学演示作用；详情页与关于页因此仍以自研卡片为主。
   这是有意的取舍：组件库用来提升规范性与开发效率，而不是把所有自研组件都删掉。
-- **本地 git 身份**：仓库内设置了 `user.name=duya13` / `user.email=duya13@users.noreply.github.com`，
-  如果这不是你 GitHub 账号绑定的邮箱，推送前改一下：
-  `git config user.email "你的邮箱"` 然后 `git commit --amend --reset-author --no-edit`。
+- **本地 git 身份**：仓库内与全局都设置为 `user.name=duya13` / `user.email=528949034@qq.com`
+  （与 GitHub 账号绑定的邮箱一致，提交会正确关联到账号头像）。
+  已有的 4 个提交在推送前已用 `git filter-branch --env-filter` 统一重写为这个邮箱，
+  提交时间戳保持原样。若以后要换邮箱，只需
+  `git config user.email "新邮箱"`，之后的提交就会用新身份。
