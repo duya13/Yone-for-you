@@ -2,7 +2,8 @@
 
 Web 前端框架程序设计课程的实验工程，从「单页 HTML」一路迭代到「组件化 → 路由化 → 状态管理 → UI 组件库 → 自动部署」。
 
-> 线上预览（部署完成后即为此地址）：**https://duya13.github.io/Yone-for-you/**
+> 线上地址（已上线）：**https://duya13.github.io/Yone-for-you/**
+> —— 由 GitHub Actions 自动构建发布，push 到 `main` 即更新。
 
 ## 技术栈
 

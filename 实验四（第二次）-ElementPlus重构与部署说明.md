@@ -147,63 +147,57 @@ Element Plus 默认主色是 `#409EFF` 蓝色，直接引入会和本站靛蓝�
 | `.env.production` | `VITE_ROUTER_MODE=hash` | 静态托管没有「任意路径回退到 index.html」，History 模式刷新子路由会 404；Hash 模式（`/#/articles/a1`）刷新永远命中 `index.html` |
 | `.github/workflows/deploy.yml` | push 到 `main` → `npm ci` → `npm run build` → 上传 `dist` → 发布 Pages | 自动化，不需要手动打包提交 |
 
-### 还需要你手动做的两步
+### 部署状态：已上线 ✅
 
-**第 1 步：推送代码**（本地仓库已经初始化并提交好了，只差推送）
+2026-10-16 完成推送与部署，无需再手动操作。
 
-> ⚠️ 这台电脑上没有独立安装 Git，PowerShell 里直接敲 `git` 会报
-> 「无法将"git"项识别为 cmdlet…」。可用的 git 是 WorkBuddy 自带的 PortableGit，
-> 它位于 `D:\新建文件夹 (2)\WorkBuddy\resources\vendor\PortableGit`。
-> 只要把它临时加进当前会话的 PATH 就能用（关掉窗口即失效，不改系统设置）：
+**推送为什么不是用 `git push` 完成的**
 
-```powershell
-# 1) 把 PortableGit 加进本次会话的 PATH
-$env:Path = "D:\新建文件夹 (2)\WorkBuddy\resources\vendor\PortableGit\mingw64\bin;" + `
-            "D:\新建文件夹 (2)\WorkBuddy\resources\vendor\PortableGit\cmd;" + $env:Path
+本机到 `github.com:443` 的 TCP 直连被阻断（`git push` 报
+`Failed to connect to github.com:443 after 21063 ms: Could not connect to server`）。
+实测只有 `github.com` 这一个主机不通，`api.github.com`、`ssh.github.com`、
+`codeload.github.com` 都正常，浏览器因为走 QUIC（UDP）所以照样能打开网页。
+于是改用 **GitHub Git Data API** 推送：用「创建 blob → 组装 tree → 创建 commit → 更新 ref」
+这套接口把本地历史原样写上去，作者、邮箱、提交时间、提交信息都与本地一致。
 
-# 2) 确认 git 可用
-git --version
+> 走这条路要记住三个坑（都已踩过）：
+> 1. **令牌需要两个权限**：`Contents: Read and write` + `Workflows: Read and write`。
+>    少了「工作流」权限的话，凡是包含 `.github/workflows/` 的 tree 都会被拒：
+>    `403 Resource not accessible by personal access token`（用 `git push` 也一样要这个权限）。
+> 2. **空仓库什么都建不了**：仓库一个提交都没有时 `POST /git/blobs` 返回
+>    `409 Git Repository is empty.`，得先用 Contents API 放一个占位文件把仓库「激活」。
+> 3. **默认分支不能删**：`DELETE /git/refs/heads/main` 返回
+>    `422 Cannot delete the default branch`，只能最后用 `force` 覆盖 ref。
 
-# 3) 推送（第一次会弹出 GitHub 授权窗口，登录账号 duya13 即可）
-git -C D:\vue\vue-project push -u origin main
-```
+**Pages 设置**：仓库 → **Settings** → **Pages** → **Build and deployment** →
+**Source = GitHub Actions**（已设置）。
 
-- 授权走的是 Git Credential Manager，登录成功后 token 会存进「Windows 凭据管理器」，
-  以后再推就不用重复登录了。
-- 用 VS Code 也可以：先让 VS Code 能识别 git（`Ctrl+,` 搜 `git.path`，
-  填 `D:\新建文件夹 (2)\WorkBuddy\resources\vendor\PortableGit\mingw64\bin\git.exe`），
-  再在「源代码管理」面板点「发布分支」。
-- 如果想一劳永逸（以后任何终端都能直接用 `git`），把上面那两个目录写进「用户环境变量 Path」即可。
-- **为什么这一步不能由 WorkBuddy 代劳**：本机的运行环境里带了一层本地代理
-  （`http_proxy=http://127.0.0.1:55912`），GitHub 的网页能访问，但 git 协议端点会被代理拒绝
-  （`curl 7 CONNECT tunnel failed, response 502`），绕开代理直连又会超时。
-  所以推送必须在**你自己的终端**里执行 —— 那里没有这层代理。
-- 另外，凭据助手已配好（`credential.helper=manager`），登录一次即可；
-  我没有写入任何 token 到仓库或配置文件里。
+### 部署结果（已逐项核实）
 
-> 本地提交（5 个）：
-> `f00dbbe feat: 实验四 —— Pinia 状态管理 + Element Plus 重构 + GitHub Pages 自动部署`
-> → `3c5bfd9 docs: 补充实验四（第二次）说明文档、README 重写、About 页新增组件清单`
-> → `fb8abfc docs: 第一次实验文档补充第二次实验与仓库指引`
-> → `90e9de6 docs: 补充 PortableGit 推送指引`
-> → `446b36f docs: 提交邮箱更正为 GitHub 绑定邮箱`
->
-> 远程已绑定：`origin → https://github.com/duya13/Yone-for-you.git`
-> 提交身份：`duya13 <528949034@qq.com>`（与 GitHub 账号绑定邮箱一致，提交会关联到账号）
+| 项目 | 结果 |
+| --- | --- |
+| 远端分支 | `main`，7 个提交；用于激活仓库的占位文件已不在仓库内容中 |
+| 提交身份 | `duya13 <528949034@qq.com>`，提交时间与本地历史一致 |
+| GitHub Actions | `Deploy Vue Site to GitHub Pages` #1 · `event=push` · **completed / success** |
+| 线上首页 | ✅ HTTP 200，`<title>实验四 - 状态管理（Pinia）</title>` |
+| 静态资源 | ✅ `assets/index-*.js` 1.18 MB、`assets/index-*.css` 402 KB、`favicon.ico` 全部 200 |
 
-**第 2 步：在仓库里开启 Pages**
-
-GitHub 仓库页面 → **Settings** → 左侧 **Pages** → **Build and deployment** →
-**Source** 选择 **GitHub Actions**。
-
-### 验证
-
-推送后进入仓库的 **Actions** 页，能看到 `Deploy Vue Site to GitHub Pages` 工作流在跑；
-出现绿色对勾即部署成功，随后访问：
-
-**https://duya13.github.io/Yone-for-you/**
+**线上地址：https://duya13.github.io/Yone-for-you/**
 
 之后每次 `git push` 到 `main`，GitHub 都会自动重新构建并更新线上页面。
+若某次推送没有触发自动部署，可在仓库 **Actions** 页选择
+`Deploy Vue Site to GitHub Pages` → **Run workflow** 手动触发
+（workflow 里已加 `workflow_dispatch`，就是为这种情况准备的兜底）。
+
+> ⚠️ **本地与远端的提交哈希不同，这是正常的**：远端那 7 个提交是用 API 重建的，
+> 内容与提交信息都和本地一致，但因为提交信息结尾换行的处理方式有细微差异，
+> 算出来的 SHA 与本地不一样。等网络恢复（或换一台能直连 GitHub 的机器）后，
+> 执行下面两条即可让本地对齐远端，之后 `git push` 不会被拒：
+>
+> ```bash
+> git fetch origin
+> git reset --hard origin/main
+> ```
 
 ---
 
@@ -252,6 +246,6 @@ GitHub 仓库页面 → **Settings** → 左侧 **Pages** → **Build and deploy
   这是有意的取舍：组件库用来提升规范性与开发效率，而不是把所有自研组件都删掉。
 - **本地 git 身份**：仓库内与全局都设置为 `user.name=duya13` / `user.email=528949034@qq.com`
   （与 GitHub 账号绑定的邮箱一致，提交会正确关联到账号头像）。
-  已有的 4 个提交在推送前已用 `git filter-branch --env-filter` 统一重写为这个邮箱，
+  推送前的 7 个提交都已用 `git filter-branch --env-filter` 统一重写为这个邮箱，
   提交时间戳保持原样。若以后要换邮箱，只需
   `git config user.email "新邮箱"`，之后的提交就会用新身份。
