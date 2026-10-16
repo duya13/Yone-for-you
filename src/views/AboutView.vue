@@ -194,17 +194,87 @@ const piniaNotes = [
   { api: 'store.$subscribe(cb, { detached: true })', desc: '监听 state 变化，持久化插件的基础' },
   { api: 'pinia.use(plugin)', desc: '注册插件；本项目用它实现 localStorage 持久化' }
 ]
+
+/* ★ 实验四（第二次）新增：Element Plus 组件清单
+   指导书要求「不少于 10 种组件，并说明其作用」，这里把实际用到的组件按分组列出来，
+   每条都写了「它解决什么问题」，方便对照验收与写报告。 */
+const elPlusGroups = [
+  {
+    group: '布局',
+    tone: 'primary',
+    items: [
+      { name: 'el-container / el-header / el-main / el-footer', desc: '三段式页面骨架；el-main 自动撑满剩余高度' },
+      { name: 'el-row / el-col', desc: '24 栅格布局，xs/sm/md/lg 做响应式列数' }
+    ]
+  },
+  {
+    group: '导航',
+    tone: 'success',
+    items: [
+      { name: 'el-menu / el-menu-item', desc: '横向导航；开 router 后点菜单项直接路由跳转' },
+      { name: 'el-tabs / el-tab-pane', desc: '后台管理的三个页签' },
+      { name: 'el-divider', desc: '带文字的分隔线' }
+    ]
+  },
+  {
+    group: '数据展示',
+    tone: 'warning',
+    items: [
+      { name: 'el-timeline / el-timeline-item', desc: '成长时间线；type 配色、hollow 空心、timestamp 时间' },
+      { name: 'el-statistic', desc: '数字统计，prefix/suffix 插槽放图标与单位' },
+      { name: 'el-descriptions / el-descriptions-item', desc: 'label-value 自动对齐的详细信息表' },
+      { name: 'el-table / el-table-column', desc: '数据表格，作用域插槽自定义单元格' },
+      { name: 'el-card', desc: '卡片容器，自带分区与阴影' },
+      { name: 'el-tag', desc: '标签；type/effect 控制配色' },
+      { name: 'el-progress', desc: '进度条；status 控制状态色' },
+      { name: 'el-avatar', desc: '头像，支持加载失败兜底' },
+      { name: 'el-badge', desc: '角标，用于收藏数' },
+      { name: 'el-empty', desc: '空状态插画 + 操作按钮' }
+    ]
+  },
+  {
+    group: '表单',
+    tone: 'danger',
+    items: [
+      { name: 'el-form / el-form-item', desc: 'model + rules 声明式校验，自动显示错误提示' },
+      { name: 'el-input', desc: '输入框；clearable 清空、show-password 密码显隐、textarea 多行' },
+      { name: 'el-input-number', desc: '数字输入，带步进与范围限制' },
+      { name: 'el-select / el-option', desc: '下拉选择' },
+      { name: 'el-radio-group / el-radio-button', desc: '药丸式单选按钮组' },
+      { name: 'el-switch', desc: '开关；主题切换、文章置顶' },
+      { name: 'el-color-picker', desc: '取色器，选文章卡片主色' }
+    ]
+  },
+  {
+    group: '反馈',
+    tone: 'info',
+    items: [
+      { name: 'el-dialog', desc: '对话框；自带遮罩、层级与 Esc 关闭' },
+      { name: 'el-alert', desc: '提示条；type 区分信息/警告/成功' },
+      { name: 'el-tooltip', desc: '悬停文字提示' },
+      { name: 'el-link', desc: '文字链接' },
+      { name: 'el-collapse-transition', desc: '折叠展开的过渡动画' },
+      { name: 'el-result', desc: '结果页，404 用它' },
+      { name: 'ElMessage / ElMessageBox', desc: '方法式轻提示与确认框，替代 alert / confirm' }
+    ]
+  }
+]
 </script>
 
 <template>
   <div class="view">
     <BaseCard icon="📄" title="关于本站" subtitle="本站是 Web 前端框架程序设计课程的实验成果，逐次迭代">
       <p class="intro">
-        我是 <b>{{ siteInfo.name }}</b>（{{ siteInfo.enName }}），这里是实验四的成果：
-        在实验三「路由化的个人主页」基础上，用 <b>Pinia</b> 接管全站共享状态 ——
+        我是 <b>{{ siteInfo.name }}</b>（{{ siteInfo.enName }}），这里是实验四的成果，分两步完成：<br />
+        <b>第一步 · 状态管理</b>：在实验三「路由化的个人主页」基础上，用 <b>Pinia</b> 接管全站共享状态 ——
         把跨组件、跨页面的数据拆成四个 Store，用 getters 承载派生计算、
         用 actions 收口每一处修改，并配一个基于 <code>$subscribe</code> 的
-        localStorage 插件让刷新不丢状态；同时新增了文章列表 / 文章详情 / 文章管理三个页面。
+        localStorage 插件让刷新不丢状态；同时新增了文章列表 / 文章详情 / 文章管理三个页面。<br />
+        <b>第二步 · UI 组件库与上线</b>：引入 <b>Element Plus</b> 全局注册（并把配色接到本站品牌色、跟随暗色主题），
+        用 <code>el-container</code> 系布局组件重构整体结构、<code>el-menu</code> 接管导航、
+        <code>el-table</code> 与表单对话框接管增删改查，并在个人信息页新增
+        <code>el-timeline</code> 成长时间线，累计使用 40 种组件；
+        最后配置 Vite <code>base</code> 与 Hash 路由，用 <b>GitHub Actions</b> 自动发布到 GitHub Pages。
       </p>
 
       <div class="meta">
@@ -315,6 +385,33 @@ const piniaNotes = [
         </li>
       </ul>
     </BaseCard>
+
+    <!-- ============ ★ 实验四（第二次）：Element Plus 组件清单 ============ -->
+    <el-card class="elplus-card" shadow="hover">
+      <template #header>
+        <div class="elplus-head">
+          <div>
+            <h2 class="elplus-head__title">🧱 本站用到的 Element Plus 组件</h2>
+            <p class="elplus-head__sub">
+              按功能分组，共 40 种；指导书要求「不少于 10 种并说明其作用」，这里逐条列出用途
+            </p>
+          </div>
+          <el-tag type="primary" effect="dark" round>Element Plus 2.14</el-tag>
+        </div>
+      </template>
+
+      <div class="elplus-groups">
+        <div v-for="g in elPlusGroups" :key="g.group" class="elplus-group">
+          <el-tag :type="g.tone" effect="light" round class="elplus-group__title">{{ g.group }}</el-tag>
+          <ul class="api-list">
+            <li v-for="item in g.items" :key="item.name">
+              <code>{{ item.name }}</code>
+              <span>{{ item.desc }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </el-card>
 
     <!-- ============ 快速验证入口 ============ -->
     <BaseCard icon="🧪" title="快速验证" subtitle="点一下就能直接验证各类路由行为">
@@ -436,5 +533,36 @@ const piniaNotes = [
 }
 .actions a {
   text-decoration: none;
+}
+
+/* ---------- Element Plus 组件清单卡片 ---------- */
+.elplus-card {
+  border-radius: 20px;
+  margin-bottom: 16px;
+}
+.elplus-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.elplus-head__title {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.elplus-head__sub {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.elplus-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.elplus-group__title {
+  margin-bottom: 8px;
 }
 </style>
