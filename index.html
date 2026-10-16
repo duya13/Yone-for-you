@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>实验四 - 状态管理（Pinia）</title>
+  </head>
+  <body>
+    <!-- 只提供一个挂载点：页面结构全部由 App.vue 及其子组件渲染。
+         注意 <title> 只是「首次进入前」的默认标题；
+         路由切换后由 src/router/index.js 的 beforeEach 按 meta.title 改写。 -->
+    <div id="app"></div>
+    <!-- 入口脚本由 Vite 处理，会递归加载 main.js → pinia / router → App.vue → 各路由页面 -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,223 @@
+<script setup>
+/* ============================================================================
+   LoginView —— 身份认证页（/login）
+   ----------------------------------------------------------------------------
+   它和「全局前置守卫 beforeEach」是一对搭档：
+
+     访客点开 /admin（后台管理）→ 守卫发现 meta.requiresAuth 为真且未登录
+       → 中断跳转，改跳到 /login?redirect=/admin
+     在这里登录成功后 → 用 router.replace 跳回 redirect 指向的原目标
+
+   为什么要用 replace 而不是 push？
+     因为是「验证之后继续完成原来的目标」：登录页不该留在历史记录里，
+     否则用户从后台点「返回」会又回到登录页。
+     这正是指导书里 router.replace 的典型应用场景。
+
+   本页顺便做了表单校验（拓展要求）：
+     用户名 / 密码为空、长度不足时给出错误提示，校验不通过不提交。
+   ========================================================================== */
+
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
+import BaseCard from '../components/common/BaseCard.vue'
+import { useAppStore } from '../stores/useAppStore.js'
+
+const route = useRoute()
+const router = useRouter()
+const store = useAppStore()
+
+/* 登录成功之后要回到哪 —— 由守卫在 query 里带过来 */
+const redirect = computed(() => String(route.query.redirect || ''))
+
+const form = ref({ username: '', password: '' })
+const errors = ref({})
+const serverMessage = ref('')
+const submitting = ref(false)
+
+/* ------------------------------ 表单校验 ------------------------------ */
+function validate() {
+  const e = {}
+  const { username, password } = form.value
+  if (!username.trim()) e.username = '请输入用户名'
+  else if (username.trim().length < 3) e.username = '用户名至少 3 个字符'
+
+  if (!password) e.password = '请输入密码'
+  else if (password.length < 6) e.password = '密码至少 6 位'
+
+  errors.value = e
+  return Object.keys(e).length === 0
+}
+
+/* ------------------------------ 提交登录 ------------------------------ */
+function onSubmit() {
+  serverMessage.value = ''
+
+  // ① 前端校验不通过 → 直接拦下，不发请求
+  if (!validate()) {
+    serverMessage.value = '请先修正表单中标红的字段'
+    return
+  }
+
+  submitting.value = true
+
+  // ② 演示环境没有真实后端，用 store 里的假账号校验
+  const result = store.login(form.value.username.trim(), form.value.password)
+  submitting.value = false
+
+  // ③ 失败 → 在页面上提示，不跳转
+  if (!result.ok) {
+    serverMessage.value = result.message
+    return
+  }
+
+  // ④ 成功 → replace 到原目标（默认后台管理）
+  const target = redirect.value || '/admin'
+  store.pushLog(store.stamp(`[LoginView] 登录成功，replace 到 ${target}`))
+  router.replace(target)
+}
+
+/** 一键填入演示账号，省得手打 */
+function fillDemo() {
+  form.value = { ...store.demoAccount }
+  errors.value = {}
+  serverMessage.value = ''
+}
+
+/** 直接以访客身份返回首页 */
+function goHome() {
+  store.pushLog(store.stamp('[LoginView] 访客选择返回首页'))
+  router.replace({ name: 'home' })
+}
+
+onMounted(() => {
+  console.log('%c[实验三] 身份认证页（LoginView）挂载完成', 'color:#f59e0b;font-weight:bold;')
+  console.log('[LoginView][mounted] redirect 参数 =', redirect.value || '(无，将默认进后台)')
+})
+
+/* 演示账号密码，直接在页面上写明，方便验收 */
+const demo = store.demoAccount
+</script>
+
+<template>
+  <div class="view">
+    <BaseCard
+      icon="🔒"
+      title="身份认证"
+      subtitle="公开展示页面人人可看；内容修改入口需要先通过这里的验证"
+    >
+      <p class="tip">
+        这是路由守卫拦截后自动跳转过来的页面。
+        <template v-if="redirect">
+          登录成功后会 <b>replace</b> 回你原本想访问的地址：<code>{{ redirect }}</code>
+        </template>
+        <template v-else>
+          直接打开这个页面时没有 redirect 参数，登录成功会默认进入后台管理。
+        </template>
+      </p>
+
+      <form class="form" @submit.prevent="onSubmit">
+        <label class="field">
+          <span class="field__label">用户名</span>
+          <input
+            v-model="form.username"
+            class="input"
+            :class="{ 'is-error': errors.username }"
+            type="text"
+            placeholder="演示账号：admin"
+            autocomplete="username"
+          />
+          <span v-if="errors.username" class="field__error">{{ errors.username }}</span>
+        </label>
+
+        <label class="field">
+          <span class="field__label">密码</span>
+          <input
+            v-model="form.password"
+            class="input"
+            :class="{ 'is-error': errors.password }"
+            type="password"
+            placeholder="演示密码：123456"
+            autocomplete="current-password"
+          />
+          <span v-if="errors.password" class="field__error">{{ errors.password }}</span>
+        </label>
+
+        <p v-if="serverMessage" class="alert">{{ serverMessage }}</p>
+
+        <div class="form__actions">
+          <button class="btn primary" type="submit" :disabled="submitting">
+            {{ submitting ? '登录中…' : '登录' }}
+          </button>
+          <button class="btn" type="button" @click="fillDemo">填入演示账号</button>
+          <button class="btn" type="button" @click="goHome">以访客身份返回首页</button>
+        </div>
+      </form>
+
+      <template #footer>
+        <p class="hint">
+          演示账号：<code>{{ demo.username }}</code> / 密码：<code>{{ demo.password }}</code>
+          —— <RouterLink :to="{ name: 'about' }">去关于页</RouterLink> 看完整路由表。
+        </p>
+      </template>
+    </BaseCard>
+  </div>
+</template>
+
+<style scoped>
+.view {
+  display: flex;
+  flex-direction: column;
+}
+
+.tip {
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--muted);
+  background: var(--soft);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 420px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.field__error {
+  font-size: 12px;
+  color: var(--danger);
+}
+.input.is-error {
+  border-color: var(--danger);
+}
+
+.alert {
+  font-size: 12.8px;
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  padding: 9px 12px;
+}
+
+.form__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+</style>

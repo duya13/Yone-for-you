@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>实验一 · 个人信息页面与 Vue 基础应用</title>
+
+<!--
+  ============================================================================
+  实验一 · 个人信息页面（单文件 HTML 版，指导书要求的「一个 HTML 文件」成果）
+  ----------------------------------------------------------------------------
+  ▸ 技术栈：CDN 引入 Vue 3 + 选项式 API（Options API）
+  ▸ 已覆盖：data / methods / computed / watch / mounted
+           插值表达式、v-bind(:)、v-for(:key)、v-if/v-show、v-on(@)、v-model
+  ▸ 拓展项：亮色/暗色主题切换、个人信息在线编辑
+
+  ★★★ 要改内容？只改一处 ★★★
+      向下找到 <script> 里 data() 中的「★ 内容替换区 ★」，
+      profile / skills / socials 三块数据改完即可，模板和样式都不用动。
+  ============================================================================
+-->
+
+<!-- ========== Vue 3（CDN）主源 + 备用源 ========== -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script>
+  // 主 CDN 不可用时自动换备用 CDN，保证换电脑 / 断网环境也能打开
+  if (!window.Vue) {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"><\/script>');
+  }
+</script>
+
+<style>
+  /* ================= 基础重置 ================= */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ================= 主题变量：亮色 ================= */
+  .page {
+    --bg: #eef2f9;
+    --bg-deco-1: rgba(99, 102, 241, 0.26);
+    --bg-deco-2: rgba(34, 211, 238, 0.24);
+    --card: #ffffff;
+    --line: #e3e8f2;
+    --text: #1e293b;
+    --muted: #64748b;
+    --brand: #4f46e5;
+    --brand-2: #22d3ee;
+    --soft: #f7f9fd;
+    --soft-brand: #eef0ff;
+    --shadow: 0 18px 45px -22px rgba(30, 41, 59, 0.35);
+    --mark: rgba(245, 158, 11, 0.42);
+
+    position: relative;
+    min-height: 100vh;
+    padding: 32px 16px 56px;
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  /* ================= 主题变量：暗色（拓展项） ================= */
+  .page.dark {
+    --bg: #0f172a;
+    --bg-deco-1: rgba(99, 102, 241, 0.34);
+    --bg-deco-2: rgba(34, 211, 238, 0.22);
+    --card: #1e293b;
+    --line: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --brand: #818cf8;
+    --brand-2: #22d3ee;
+    --soft: #172033;
+    --soft-brand: #262f4a;
+    --shadow: 0 18px 45px -22px rgba(0, 0, 0, 0.75);
+    --mark: rgba(245, 158, 11, 0.5);
+  }
+
+  /* 背景光斑装饰 */
+  .page::before {
+    content: "";
+    position: fixed;
+    top: -20%; left: -10%; right: -10%;
+    height: 62vh;
+    background:
+      radial-gradient(45% 60% at 22% 30%, var(--bg-deco-1), transparent 70%),
+      radial-gradient(40% 55% at 80% 12%, var(--bg-deco-2), transparent 70%);
+    filter: blur(6px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 940px; margin: 0 auto; }
+
+  /* ================= 顶栏 ================= */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 0.3px; }
+  .brand .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.16);
+  }
+  .brand small { color: var(--muted); font-weight: 500; }
+  .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .hint { font-size: 12.5px; color: var(--muted); }
+
+  /* ================= 按钮 ================= */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-family: inherit;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px -10px rgba(30, 41, 59, 0.45); }
+  .btn:active { transform: translateY(0); }
+  .btn.primary { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; border-color: transparent; }
+  .btn.sm { padding: 5px 11px; font-size: 12.5px; }
+
+  /* ================= 卡片 ================= */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    padding: 26px;
+    margin-bottom: 18px;
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+
+  /* ================= 个人信息区 ================= */
+  .profile { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+  .avatar-box { position: relative; flex: 0 0 auto; }
+  .avatar {
+    width: 118px; height: 118px;
+    border-radius: 26px;
+    object-fit: cover;
+    display: block;
+    border: 3px solid var(--card);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.38);
+    background: var(--soft);
+  }
+  .avatar-box .badge {
+    position: absolute; right: -6px; bottom: -6px;
+    background: #10b981; color: #fff;
+    font-size: 11px; font-weight: 700;
+    padding: 3px 9px; border-radius: 999px;
+    border: 2px solid var(--card);
+  }
+  .info { flex: 1 1 320px; min-width: 260px; }
+  .name { margin: 0 0 4px; font-size: 27px; line-height: 1.2; font-weight: 700; }
+  .name .en { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 8px; }
+  .subline { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .tag {
+    background: var(--soft-brand); color: var(--brand);
+    border-radius: 999px; padding: 4px 12px;
+    font-size: 12.5px; font-weight: 600;
+  }
+  .tag.hollow { background: transparent; border: 1px dashed var(--line); color: var(--muted); }
+
+  .bio {
+    background: var(--soft);
+    border-left: 3px solid var(--brand);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px; line-height: 1.75;
+    color: var(--muted);
+  }
+
+  .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+  .actions .tip { font-size: 12.5px; color: var(--muted); margin-left: auto; }
+
+  /* 详情展开区 */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+    animation: fade 0.35s ease;
+  }
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: none; }
+  }
+  .kv {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--soft);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 11px 13px;
+    font-size: 13.5px;
+  }
+  .kv i { font-style: normal; font-size: 16px; }
+  .kv .k { color: var(--muted); }
+  .kv .v { font-weight: 600; }
+
+  /* ================= 编辑信息弹层（拓展项） ================= */
+  .mask {
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    z-index: 99;
+  }
+  .dialog {
+    width: 100%; max-width: 560px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 24px;
+    max-height: 88vh; overflow-y: auto;
+    animation: fade 0.3s ease;
+  }
+  .dialog h3 { font-size: 17px; margin-bottom: 4px; }
+  .dialog .sub { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-size: 12.5px; color: var(--muted); }
+  .field input, .field textarea {
+    border: 1px solid var(--line);
+    background: var(--soft);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .field input:focus, .field textarea:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.16);
+  }
+  .field textarea { resize: vertical; min-height: 78px; }
+  .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+  /* ================= 统计条 ================= */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+  .stat { background: var(--soft); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+  .stat b { display: block; font-size: 22px; line-height: 1.3; font-weight: 700; }
+  .stat span { font-size: 12.5px; color: var(--muted); }
+
+  /* ================= 区块标题 ================= */
+  .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .section-head h2 { margin: 0; font-size: 17px; font-weight: 700; }
+
+  /* ================= 搜索框 ================= */
+  .search { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .search-input {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--soft);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 9px 12px;
+    min-width: 250px;
+    flex: 1 1 250px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .search-input:focus-within { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.16); }
+  .search-input input {
+    border: 0; outline: 0; background: transparent;
+    color: var(--text); font-size: 14px; font-family: inherit; width: 100%;
+  }
+  .search-input input::placeholder { color: var(--muted); }
+  .clear { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px; }
+  .clear:hover { color: var(--brand); }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .chips-label { font-size: 12.5px; color: var(--muted); align-self: center; }
+  .chip {
+    border: 1px solid var(--line); background: transparent; color: var(--muted);
+    border-radius: 999px; padding: 4px 11px; font-size: 12.5px;
+    cursor: pointer; font-family: inherit; transition: all 0.18s ease;
+  }
+  .chip:hover { border-color: var(--brand); color: var(--brand); background: var(--soft-brand); }
+
+  /* ================= 技能列表 ================= */
+  .skills { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 12px; margin-top: 16px; }
+  .skill {
+    background: var(--soft);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 13px 15px;
+    transition: transform 0.18s ease, border-color 0.2s ease;
+  }
+  .skill:hover { transform: translateY(-2px); border-color: var(--brand); }
+  .skill .row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .skill .sname { font-weight: 700; font-size: 14.5px; }
+  .skill .cat { font-size: 11.5px; color: var(--brand); background: var(--soft-brand); border-radius: 999px; padding: 2px 9px; }
+  .skill .desc { font-size: 12.8px; color: var(--muted); margin-bottom: 9px; min-height: 18px; }
+  .skill mark { background: var(--mark); color: inherit; border-radius: 4px; padding: 0 3px; }
+  .bar { height: 7px; border-radius: 999px; background: rgba(100, 116, 139, 0.2); overflow: hidden; }
+  .bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
+
+  .empty {
+    text-align: center; color: var(--muted);
+    padding: 26px 10px; font-size: 14px;
+    border: 1px dashed var(--line); border-radius: 14px;
+    margin-top: 16px; background: var(--soft);
+  }
+  .empty .big { font-size: 30px; display: block; margin-bottom: 6px; }
+
+  /* ================= 日志区 ================= */
+  .log { margin-top: 14px; }
+  .log-title { font-size: 12.5px; color: var(--muted); margin-bottom: 7px; }
+  .log-list {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-direction: column; gap: 5px;
+    max-height: 132px; overflow-y: auto;
+  }
+  .log-list li {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px; color: var(--muted);
+    background: var(--soft);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 10px;
+  }
+
+  /* ================= 社交链接 ================= */
+  .links { display: flex; gap: 10px; flex-wrap: wrap; }
+  .link {
+    display: inline-flex; align-items: center; gap: 7px;
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 14px;
+    color: var(--text);
+    font-size: 13.5px;
+    background: var(--soft);
+    transition: all 0.18s ease;
+  }
+  .link:hover { border-color: var(--brand); color: var(--brand); background: var(--soft-brand); transform: translateY(-2px); }
+
+  footer { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 22px; line-height: 1.9; }
+  kbd {
+    background: var(--card); border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 5px; padding: 1px 5px; font-size: 11.5px; font-family: inherit;
+  }
+</style>
+</head>
+
+<body>
+<!-- ==================== 视图区（Vue 挂载点） ==================== -->
+<!-- 提示：Vue 只把挂载容器的「内部内容」当作模板，
+     容器自身的属性（包括 :class）不会生效，所以主题类必须绑在里面的 .page 上 -->
+<div id="app">
+  <div class="page" :class="{ dark: isDark }">
+    <div class="wrap">
+
+    <!-- 顶栏 -->
+    <div class="topbar">
+      <div class="brand">
+        <span class="dot"></span>
+        <span>个人信息页面 <small>· 实验一 / Vue 3 基础应用</small></span>
+      </div>
+      <div class="topbar-actions">
+        <span class="hint">单文件 HTML · CDN + 选项式 API</span>
+        <!-- v-on 绑定事件：主题切换 -->
+        <button class="btn sm" @click="toggleTheme">{{ isDark ? "☀️ 亮色" : "🌙 暗色" }}</button>
+      </div>
+    </div>
+
+    <!-- ============ 主卡片：插值表达式 + v-bind 绑定头像 src ============ -->
+    <div class="card">
+      <div class="profile">
+        <div class="avatar-box">
+          <img
+            class="avatar"
+            :src="profile.avatar"
+            :alt="profile.name + ' 的头像'"
+            @error="onAvatarError"
+          />
+          <span class="badge">在线</span>
+        </div>
+
+        <div class="info">
+          <h1 class="name">
+            {{ profile.name }}
+            <span class="en" v-if="profile.enName">/ {{ profile.enName }}</span>
+          </h1>
+          <p class="subline">{{ profile.major }} · {{ profile.className }}</p>
+
+          <!-- v-for 渲染兴趣标签数组，必须配合 :key -->
+          <div class="tags">
+            <span class="tag" v-for="tag in profile.interestTags" :key="tag">{{ tag }}</span>
+            <span class="tag hollow">{{ greeting }}</span>
+          </div>
+
+          <p class="bio">{{ profile.bio }}</p>
+
+          <!-- 展开 / 收起：v-if 控制详情 DOM 是否存在 -->
+          <div class="actions">
+            <button class="btn" @click="toggleDetail">
+              {{ showDetail ? "▲ 收起详细资料" : "▼ 展开详细资料" }}
+            </button>
+            <button class="btn" @click="openEdit">✏️ 编辑信息</button>
+            <span class="tip">已展开 {{ detailOpenCount }} 次</span>
+          </div>
+
+          <div class="detail-grid" v-if="showDetail">
+            <div class="kv"><i>🎓</i><span class="k">学号</span><span class="v">{{ profile.studentId }}</span></div>
+            <div class="kv"><i>📚</i><span class="k">专业</span><span class="v">{{ profile.major }}</span></div>
+            <div class="kv"><i>🏫</i><span class="k">班级</span><span class="v">{{ profile.className }}</span></div>
+            <div class="kv"><i>💻</i><span class="k">方向</span><span class="v">{{ profile.direction }}</span></div>
+            <div class="kv"><i>📧</i><span class="k">邮箱</span><span class="v">{{ profile.email }}</span></div>
+            <div class="kv"><i>📱</i><span class="k">电话</span><span class="v">{{ profile.phone }}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 统计条（全部由 computed 计算得出） ============ -->
+    <div class="card">
+      <div class="stats">
+        <div class="stat"><b>{{ skills.length }}</b><span>技能总数</span></div>
+        <div class="stat"><b>{{ filteredSkills.length }}</b><span>当前匹配</span></div>
+        <div class="stat"><b>{{ categories.length }}</b><span>技能分类</span></div>
+        <div class="stat"><b>{{ avgLevel }}%</b><span>平均熟练度</span></div>
+      </div>
+    </div>
+
+    <!-- ============ 技能区：v-model 搜索 + computed 筛选 + watch 监听 ============ -->
+    <div class="card">
+      <div class="section-head">
+        <h2>🧩 技能与兴趣</h2>
+        <span class="hint">共 {{ skills.length }} 项，当前匹配 {{ filteredSkills.length }} 项</span>
+      </div>
+
+      <!-- v-model 双向绑定搜索关键词 -->
+      <div class="search">
+        <label class="search-input">
+          <span>🔍</span>
+          <input
+            type="text"
+            v-model="keyword"
+            placeholder="输入关键词筛选技能，如 Vue / 前端 / MySQL"
+          />
+          <!-- v-show 控制显隐：只切换 CSS，不移除 DOM -->
+          <button class="clear" v-show="keyword" @click="clearKeyword" title="清空">✕</button>
+        </label>
+        <button
+          class="btn sm"
+          v-for="c in categories"
+          :key="c"
+          :class="{ primary: keyword === c }"
+          @click="pickCategory(c)"
+        >
+          {{ c }}
+        </button>
+      </div>
+
+      <div class="chips" v-if="searchHistory.length">
+        <span class="chips-label">最近搜索：</span>
+        <button class="chip" v-for="(h, i) in searchHistory" :key="h + i" @click="keyword = h">
+          {{ h }}
+        </button>
+      </div>
+
+      <!-- 空结果提示 -->
+      <div class="empty" v-if="filteredSkills.length === 0">
+        <span class="big">🔍</span>
+        没有找到包含「{{ keyword }}」的技能，换个关键词试试～
+      </div>
+
+      <!-- 技能列表：v-for + :key 渲染 -->
+      <div class="skills" v-else>
+        <div class="skill" v-for="skill in filteredSkills" :key="skill.id">
+          <div class="row1">
+            <span class="sname" v-html="highlight(skill.name)"></span>
+            <span class="cat">{{ skill.category }}</span>
+          </div>
+          <div class="desc" v-html="highlight(skill.desc)"></div>
+          <!-- v-bind 绑定行内样式：熟练度进度条宽度 -->
+          <div class="bar"><span :style="{ width: skill.level + '%' }"></span></div>
+        </div>
+      </div>
+
+      <!-- watch / mounted 的观察结果，与控制台输出相互印证 -->
+      <div class="log">
+        <div class="log-title">⌨️ 状态观察（watch 监听关键词与展开状态 · mounted 输出加载信息）</div>
+        <ul class="log-list">
+          <li v-for="(log, i) in logs" :key="i">{{ log }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============ 社交链接：v-for + v-bind 绑定 href ============ -->
+    <div class="card">
+      <div class="section-head">
+        <h2>🔗 找到我</h2>
+        <span class="hint">v-bind 绑定动态链接</span>
+      </div>
+      <div class="links">
+        <a
+          class="link"
+          v-for="link in socials"
+          :key="link.id"
+          :href="link.url"
+          :target="link.url.startsWith('http') ? '_blank' : '_self'"
+          :rel="link.url.startsWith('http') ? 'noopener' : ''"
+        >
+          <span>{{ link.icon }}</span><span>{{ link.name }}</span>
+        </a>
+      </div>
+    </div>
+
+    <footer>
+      实验一 · 个人信息页面与 Vue 基础应用 &nbsp;|&nbsp; 单文件 HTML + CDN 引入 Vue 3 + 选项式 API<br />
+      按 <kbd>F12</kbd> 打开控制台，可查看 mounted 与 watch 输出的运行日志
+    </footer>
+  </div>
+
+  <!-- ============ 编辑信息弹层（拓展项 · v-model 双向绑定表单） ============ -->
+  <div class="mask" v-if="isEditing" @click.self="cancelEdit">
+    <div class="dialog">
+      <h3>✏️ 编辑个人信息</h3>
+      <p class="sub">表单用 v-model 双向绑定草稿对象，点「保存」才写回 data（可随时取消）</p>
+
+      <div class="form-grid">
+        <div class="field">
+          <label>姓名</label>
+          <input type="text" v-model="editForm.name" />
+        </div>
+        <div class="field">
+          <label>英文名</label>
+          <input type="text" v-model="editForm.enName" />
+        </div>
+        <div class="field">
+          <label>学号</label>
+          <input type="text" v-model="editForm.studentId" />
+        </div>
+        <div class="field">
+          <label>专业</label>
+          <input type="text" v-model="editForm.major" />
+        </div>
+        <div class="field">
+          <label>班级</label>
+          <input type="text" v-model="editForm.className" />
+        </div>
+        <div class="field">
+          <label>方向</label>
+          <input type="text" v-model="editForm.direction" />
+        </div>
+        <div class="field">
+          <label>邮箱</label>
+          <input type="text" v-model="editForm.email" />
+        </div>
+        <div class="field">
+          <label>电话</label>
+          <input type="text" v-model="editForm.phone" />
+        </div>
+        <div class="field full">
+          <label>个人简介</label>
+          <textarea v-model="editForm.bio"></textarea>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="btn" @click="cancelEdit">取消</button>
+        <button class="btn primary" @click="saveEdit">保存</button>
+      </div>
+    </div>
+  </div>
+  </div><!-- /.page -->
+</div><!-- /#app -->
+
+<!-- ==================== 逻辑区 ==================== -->
+<script>
+  /* ==========================================================================
+     Vue 3 选项式 API 根组件
+     --------------------------------------------------------------------------
+     阅读顺序：data → computed → watch → mounted → methods
+     ========================================================================== */
+  const { createApp } = Vue;
+
+  // 头像加载失败时的兜底图（内联 SVG，离线也能显示）
+  const FALLBACK_AVATAR =
+    'data:image/svg+xml;charset=utf-8,' +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">' +
+        '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#22d3ee"/>' +
+        '</linearGradient></defs>' +
+        '<rect width="200" height="200" fill="url(#g)"/>' +
+        '<circle cx="100" cy="76" r="33" fill="#ffffff" opacity="0.95"/>' +
+        '<path d="M40 172c6-34 32-52 60-52s54 18 60 52z" fill="#ffffff" opacity="0.95"/>' +
+        '</svg>'
+    );
+
+  createApp({
+    /* ------------------------------------------------------------------
+       ① data：声明响应式数据
+          页面上展示的主要内容全部来自这里，模板中不硬编码
+       ------------------------------------------------------------------ */
+    data() {
+      return {
+        /* ==============================================================
+           ★★★★★  内容替换区 开始  ★★★★★
+           只改下面 profile / skills / socials 三块，
+           模板和样式都不用动，页面会自动更新。
+           ============================================================== */
+
+        // ① 个人基本信息
+        profile: {
+          // 头像地址；换成本地图片请写相对路径，例如 './avatar.jpg'
+          // 网络不可用时会自动换成内置兜底头像
+          avatar: '',
+          name: '殷康竣',
+          enName: 'Yin Kangjun',
+          studentId: '249980641',
+          major: '计算机科学与技术',
+          className: '24计科2班',
+          direction: 'Web 前端开发',
+          // ↓ 邮箱、电话是占位内容，记得换成你自己的
+          email: 'yinkangjun@example.com',
+          phone: '138 0000 0000',
+          bio: '我是 Vue 初学者，喜欢前端开发，正在学习 Vue 3。这个页面用选项式 API 完成，主要练习 data、methods、computed、watch 和 mounted 的配合使用。',
+          // 兴趣标签：数组 → 模板里用 v-for 渲染
+          interestTags: ['前端开发', 'Vue 3', 'MySQL']
+        },
+
+        // ② 技能列表：数组 → 模板里用 v-for + :key 渲染
+        //    字段说明：id 唯一标识 / name 技能名 / category 分类 / level 熟练度(0-100) / desc 说明
+        skills: [
+          { id: 1, name: 'HTML',       category: '前端基础', level: 85, desc: '语义化标签、表单与页面结构' },
+          { id: 2, name: 'CSS',        category: '前端基础', level: 80, desc: 'Flex / Grid 布局与响应式' },
+          { id: 3, name: 'JavaScript', category: '前端基础', level: 75, desc: 'ES6+ 语法、DOM 操作与数组方法' },
+          { id: 4, name: 'Vue 3',      category: '前端框架', level: 70, desc: '选项式 API、模板指令、响应式原理' },
+          { id: 5, name: 'Python',     category: '后端相关', level: 65, desc: '基础语法与脚本编写' },
+          { id: 6, name: 'MySQL',      category: '后端相关', level: 60, desc: '建表、增删改查与简单查询' }
+        ],
+
+        // ③ 社交链接：数组 → 模板里用 v-for + v-bind 绑定 href
+        socials: [
+          { id: 'gh',   icon: '🐙', name: 'GitHub',  url: 'https://github.com' },
+          { id: 'vue',  icon: '💚', name: 'Vue 官网', url: 'https://cn.vuejs.org' },
+          { id: 'mail', icon: '✉️', name: '发邮件',   url: 'mailto:yinkangjun@example.com' }
+        ],
+
+        /* ==============================================================
+           ★★★★★  内容替换区 结束  ★★★★★
+           下面都是交互状态，一般不需要改
+           ============================================================== */
+
+        keyword: '',            // v-model 绑定的搜索关键词
+        showDetail: false,      // 详情展开 / 收起
+        detailOpenCount: 0,     // 展开次数
+        openedAt: '',           // 页面挂载时间
+        searchHistory: [],      // 最近搜索关键词（由 watch 维护）
+        logs: [],               // 观察日志（与控制台输出对应，方便截图写实验报告）
+        isDark: false,          // 亮色 / 暗色主题（拓展项）
+        isEditing: false,       // 编辑弹层开关（拓展项）
+        editForm: {}            // 编辑草稿，打开弹层时从 profile 拷贝
+      };
+    },
+
+    /* ------------------------------------------------------------------
+       ② computed：根据已有数据计算新结果（有缓存，依赖变化才重算）
+       ------------------------------------------------------------------ */
+    computed: {
+      // 按关键词筛选技能列表（纯计算，不改动原数组）
+      filteredSkills() {
+        const kw = this.keyword.trim().toLowerCase();
+        if (!kw) return this.skills;
+        return this.skills.filter(
+          (s) =>
+            s.name.toLowerCase().includes(kw) ||
+            s.category.toLowerCase().includes(kw) ||
+            s.desc.toLowerCase().includes(kw)
+        );
+      },
+
+      // 分类快捷按钮：从技能数据里去重得到，而不是写死
+      categories() {
+        return [...new Set(this.skills.map((s) => s.category))];
+      },
+
+      // 按当前时间生成问候语
+      greeting() {
+        const h = new Date().getHours();
+        if (h < 6) return '夜深了，早点休息';
+        if (h < 12) return '早上好';
+        if (h < 14) return '中午好';
+        if (h < 18) return '下午好';
+        return '晚上好';
+      },
+
+      // 技能平均熟练度
+      avgLevel() {
+        if (!this.skills.length) return 0;
+        return Math.round(this.skills.reduce((sum, s) => sum + s.level, 0) / this.skills.length);
+      }
+    },
+
+    /* ------------------------------------------------------------------
+       ③ watch：观察指定数据的变化，做副作用（这里是输出 + 记录）
+       ------------------------------------------------------------------ */
+    watch: {
+      // 监听搜索关键词变化 → 记录到控制台、页面日志与「最近搜索」
+      keyword(newVal, oldVal) {
+        const msg = `[watch] keyword：${oldVal === '' ? '(空)' : oldVal} → ${newVal === '' ? '(空)' : newVal}`;
+        console.log(msg);
+        this.pushLog(msg);
+
+        const v = String(newVal).trim();
+        if (v && v !== this.searchHistory[0]) {
+          this.searchHistory.unshift(v);
+          if (this.searchHistory.length > 5) this.searchHistory.pop();
+        }
+      },
+
+      // 监听详情展开状态变化
+      showDetail(newVal) {
+        const msg = `[watch] showDetail → ${newVal ? '展开' : '收起'}`;
+        console.log(msg);
+        this.pushLog(msg);
+      },
+
+      // 监听主题切换
+      isDark(newVal) {
+        console.log('[watch] 主题切换为：', newVal ? '暗色' : '亮色');
+        try {
+          localStorage.setItem('exp1-theme', newVal ? 'dark' : 'light');
+        } catch (e) {
+          /* 某些环境下 localStorage 不可用，忽略即可 */
+        }
+      }
+    },
+
+    /* ------------------------------------------------------------------
+       ④ mounted：页面挂载完成后执行（适合做一次性的初始化 / 输出）
+       ------------------------------------------------------------------ */
+    mounted() {
+      // 恢复上次选择的主题
+      try {
+        this.isDark = localStorage.getItem('exp1-theme') === 'dark';
+      } catch (e) {
+        /* 忽略 */
+      }
+
+      this.openedAt = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+
+      // 在控制台输出页面加载完成信息
+      console.log('%c[实验一] 个人信息页面加载完成', 'color:#4f46e5;font-weight:bold;');
+      console.log('[mounted] 挂载时间：', this.openedAt);
+      console.log('[mounted] 视口尺寸：', window.innerWidth + ' × ' + window.innerHeight);
+      console.log('[mounted] 技能条目数：', this.skills.length);
+      console.log('[mounted] 数据来源：data() 中的 profile / skills / socials');
+      console.log('[mounted] 可在 Vue DevTools 中查看并实时修改 data');
+
+      this.pushLog(`[mounted] 页面加载完成 · ${this.openedAt} · 技能 ${this.skills.length} 项`);
+    },
+
+    /* ------------------------------------------------------------------
+       ⑤ methods：事件处理方法（模板里用 v-on / @ 调用）
+       ------------------------------------------------------------------ */
+    methods: {
+      // 展开 / 收起个人详情
+      toggleDetail() {
+        this.showDetail = !this.showDetail;
+        if (this.showDetail) this.detailOpenCount++;
+      },
+
+      // 点击分类按钮：已选中则取消，否则按该分类筛选
+      pickCategory(cat) {
+        this.keyword = this.keyword === cat ? '' : cat;
+      },
+
+      // 清空搜索关键词
+      clearKeyword() {
+        this.keyword = '';
+      },
+
+      // 头像加载失败（断网 / 地址失效）时换成兜底图
+      onAvatarError() {
+        if (this.profile.avatar !== FALLBACK_AVATAR) {
+          console.warn('[methods] 头像加载失败，已切换到内置兜底头像');
+          this.profile.avatar = FALLBACK_AVATAR;
+        }
+      },
+
+      // 把命中关键词的片段高亮（返回 HTML 片段，模板中用 v-html 输出）
+      highlight(text) {
+        const kw = this.keyword.trim();
+        if (!kw) return text;
+        const safe = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return String(text).replace(new RegExp(safe, 'gi'), (m) => `<mark>${m}</mark>`);
+      },
+
+      // 追加一条页面日志（最多保留 30 条）
+      pushLog(msg) {
+        const t = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+        this.logs.unshift(`[${t}] ${msg}`);
+        if (this.logs.length > 30) this.logs.pop();
+      },
+
+      /* ---------- 拓展项：主题切换 ---------- */
+      toggleTheme() {
+        this.isDark = !this.isDark;
+      },
+
+      /* ---------- 拓展项：个人信息编辑 ---------- */
+      // 打开弹层：把 profile 拷贝一份到草稿，避免边输边改原数据
+      openEdit() {
+        this.editForm = JSON.parse(JSON.stringify(this.profile));
+        this.isEditing = true;
+      },
+      // 取消：丢弃草稿
+      cancelEdit() {
+        this.isEditing = false;
+        console.log('[methods] 已取消编辑，数据未改动');
+      },
+      // 保存：草稿写回 data，视图自动更新（MVVM 的核心体现）
+      saveEdit() {
+        this.profile = { ...this.editForm };
+        this.isEditing = false;
+        console.log('%c[methods] 个人信息已更新（可在 Vue DevTools 里看 data 变化）', 'color:#10b981;font-weight:bold;');
+        this.pushLog('[methods] 个人信息已保存，视图已自动更新');
+      }
+    }
+  }).mount('#app');
+</script>
+</body>
+</html>

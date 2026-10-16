@@ -1,0 +1,234 @@
+/* ============================================================================
+   实验三 · 共享状态仓库（store）
+   ----------------------------------------------------------------------------
+   ★ 为什么实验三要把状态从 App.vue 抽出来？
+     实验二用 <ProfileView v-show> 时，App.vue 可以直接 :profile="profile"
+     把数据「顺着 props」传下去。
+     但实验三换成 <RouterView> 后，页面组件是由「路由」决定渲染哪一个的，
+     App.vue 并不知道当前到底渲染的是 ProfileView 还是 ProjectListView，
+     也没法给它们逐个写 props。
+
+     解决办法有两种：
+       A. 继续 provide / inject（实验二已经用它共享了「活动日志」）
+       B. 抽一个模块级的响应式状态仓库，谁用谁 import
+
+     本项目对「页面级共享数据」采用 B，对「活动日志」保留 A —— 两种方式
+     都能解决跨层级共享，区别只是：
+       provide/inject 依赖组件树（必须有祖先 provide 它）
+       模块 store     不依赖组件树（任何地方 import 都能拿到同一份响应式数据）
+
+   ★ 实现要点：模块顶层的 reactive 只会执行一次，
+     所以所有调用 useAppStore() 的组件拿到的都是「同一个对象」，
+     修改它会让用到它的所有页面一起更新（这正是跨路由共享的关键）。
+   ========================================================================== */
+
+import { reactive, computed } from 'vue'
+import { profileData, projectData } from '../data/content.js'
+
+const STORAGE_KEY = 'exp3-state'
+
+/* ============================================================================
+   ① 状态本体（模块级单例）
+   ========================================================================== */
+const state = reactive({
+  /* ---- 全站外观 ---- */
+  theme: 'light', // 'light' | 'dark'
+
+  /* ---- 个人信息（后台管理可修改） ---- */
+  profile: { ...profileData },
+
+  /* ---- 项目数据（后台管理可增 / 删 / 改，所以复制一份，不动原始常量） ---- */
+  projects: projectData.map((p) => ({ ...p })),
+
+  /* ---- 收藏（顶部导航要显示数量，跨路由共享） ---- */
+  favoriteIds: ['p2', 'p6'],
+
+  /* ---- 活动日志（顶部 / 各页面都会写） ---- */
+  logs: [],
+
+  /* ---- 身份认证状态（路由守卫要读它） ---- */
+  isAuthed: false,
+  account: ''
+})
+
+/* ============================================================================
+   ② 日志（沿用实验二的 stamp 风格）
+   ========================================================================== */
+function stamp(message) {
+  const time = new Date().toLocaleTimeString('zh-CN', { hour12: false })
+  return `[${time}] ${message}`
+}
+
+function pushLog(message) {
+  state.logs.unshift(message)
+  if (state.logs.length > 60) state.logs.pop()
+}
+
+function clearLogs() {
+  state.logs = []
+  pushLog(stamp('[store] 日志已清空'))
+}
+
+/* ============================================================================
+   ③ 持久化（可选）：把用户改过的内容存进 localStorage，刷新后不丢
+   ========================================================================== */
+function persist() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        theme: state.theme,
+        profile: state.profile,
+        projects: state.projects,
+        favoriteIds: state.favoriteIds,
+        isAuthed: state.isAuthed,
+        account: state.account
+      })
+    )
+  } catch (e) {
+    /* 隐私模式等环境下 localStorage 不可用，忽略即可 */
+  }
+}
+
+/** 应用启动时调用一次，把上次的状态读回来 */
+function restore() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return
+
+    const saved = JSON.parse(raw)
+    if (saved.theme) state.theme = saved.theme
+    if (saved.profile) state.profile = { ...state.profile, ...saved.profile }
+    if (Array.isArray(saved.projects) && saved.projects.length) state.projects = saved.projects
+    if (Array.isArray(saved.favoriteIds)) state.favoriteIds = saved.favoriteIds
+    if (typeof saved.isAuthed === 'boolean') state.isAuthed = saved.isAuthed
+    if (typeof saved.account === 'string') state.account = saved.account
+  } catch (e) {
+    /* 数据损坏就当没有缓存 */
+  }
+}
+
+/* ============================================================================
+   ④ 各种操作（改状态 + 同步 localStorage）
+   ========================================================================== */
+const isDark = computed(() => state.theme === 'dark')
+
+function toggleTheme() {
+  state.theme = isDark.value ? 'light' : 'dark'
+  persist()
+  pushLog(stamp(`[store] 主题切换为「${state.theme === 'dark' ? '暗色' : '亮色'}」`))
+  return state.theme
+}
+
+function saveProfile(next) {
+  state.profile = { ...next }
+  persist()
+  pushLog(stamp('[store] 个人信息已更新'))
+}
+
+function isFavorite(id) {
+  return state.favoriteIds.includes(id)
+}
+
+function toggleFavorite(id) {
+  const i = state.favoriteIds.indexOf(id)
+  if (i === -1) state.favoriteIds.push(id)
+  else state.favoriteIds.splice(i, 1)
+  persist()
+}
+
+/** 按 id 查项目：项目详情页、后台管理都会用 */
+function getProject(id) {
+  return state.projects.find((p) => p.id === id) || null
+}
+
+function addProject(project) {
+  state.projects.unshift({ ...project })
+  persist()
+  pushLog(stamp(`[store] 新增项目：${project.name}`))
+}
+
+function updateProject(id, patch) {
+  const index = state.projects.findIndex((p) => p.id === id)
+  if (index === -1) return false
+  state.projects[index] = { ...state.projects[index], ...patch }
+  persist()
+  pushLog(stamp(`[store] 修改项目：${state.projects[index].name}`))
+  return true
+}
+
+function removeProject(id) {
+  const index = state.projects.findIndex((p) => p.id === id)
+  if (index === -1) return false
+  const name = state.projects[index].name
+  state.projects.splice(index, 1)
+  const fi = state.favoriteIds.indexOf(id)
+  if (fi !== -1) state.favoriteIds.splice(fi, 1)
+  persist()
+  pushLog(stamp(`[store] 删除项目：${name}`))
+  return true
+}
+
+/** 恢复出厂数据（后台管理的「重置」按钮用） */
+function resetProjects() {
+  state.projects = projectData.map((p) => ({ ...p }))
+  persist()
+  pushLog(stamp('[store] 项目数据已恢复为初始值'))
+}
+
+/* ---- 身份认证 ---- */
+const DEMO_USER = 'admin'
+const DEMO_PASSWORD = '123456'
+
+function login(username, password) {
+  if (username !== DEMO_USER || password !== DEMO_PASSWORD) {
+    return { ok: false, message: '用户名或密码错误（演示账号：admin / 123456）' }
+  }
+  state.isAuthed = true
+  state.account = username
+  persist()
+  pushLog(stamp(`[store] 登录成功：${username}`))
+  return { ok: true, message: '登录成功' }
+}
+
+function logout() {
+  state.isAuthed = false
+  state.account = ''
+  persist()
+  pushLog(stamp('[store] 已退出登录'))
+}
+
+/* ============================================================================
+   ⑤ 统一出口：组件里 const store = useAppStore() 即可
+   ========================================================================== */
+export function useAppStore() {
+  return {
+    state,
+    isDark,
+    /* 日志 */
+    pushLog,
+    clearLogs,
+    stamp,
+    /* 主题 */
+    toggleTheme,
+    /* 个人信息 */
+    saveProfile,
+    /* 项目 */
+    getProject,
+    addProject,
+    updateProject,
+    removeProject,
+    resetProjects,
+    /* 收藏 */
+    isFavorite,
+    toggleFavorite,
+    /* 认证 */
+    login,
+    logout,
+    /* 持久化 */
+    persist,
+    restore,
+    /* 演示账号，登录页提示用 */
+    demoAccount: { username: DEMO_USER, password: DEMO_PASSWORD }
+  }
+}

@@ -1,0 +1,225 @@
+<template>
+  <div :class="{ dark: isDark }">
+    <div class="card">
+      <button class="btn btn-theme" @click="toggleTheme">
+        切换亮色/暗黑主题
+      </button>
+      <div class="header-box">
+        <!--矩形照片框，在线头像-->
+        <img class="avatar" :src="userInfo.avatarUrl" alt="个人照片" />
+        <div>
+          <div class="info-item">
+            <strong>姓名：</strong>{{ userInfo.name }}
+          </div>
+          <div class="info-item">
+            <strong>学号：</strong>{{ userInfo.studentId }}
+          </div>
+          <div class="info-item">
+            <strong>专业：</strong>{{ userInfo.major }}
+          </div>
+          <div class="info-item">
+            <strong>班级：</strong>{{ userInfo.className }}
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" @click="toggleDetail">
+        {{ isShowDetail ? "收起详情" : "展开详情" }}
+      </button>
+
+      <div v-show="isShowDetail" class="desc-block">
+        <h4>个人简介</h4>
+        <p>{{ userInfo.desc }}</p>
+      </div>
+
+      <hr />
+      <h4>技能搜索</h4>
+      <input
+        class="search-input"
+        v-model="searchKey"
+        placeholder="输入关键词搜索技能"
+      />
+      <h4>技能列表</h4>
+      <div>
+        <span class="skill-tag" v-for="item in filterSkillList" :key="item.id">
+          {{ item.name }}
+        </span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch, onMounted } from "vue";
+
+// 个人信息
+const userInfo = ref({
+  avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=VueStudent",
+  name: "殷康竣",
+  studentId: "20240101001",
+  major: "计算机科学与技术",
+  className: "24计科2班",
+  desc: "我是Vue初学者，喜欢前端开发，正在学习Vue3组合式API。",
+});
+
+// 控制简介展开
+const isShowDetail = ref(false);
+// 搜索关键词
+const searchKey = ref("");
+// 技能数组
+const skillList = ref([
+  { id: 1, name: "HTML" },
+  { id: 2, name: "CSS" },
+  { id: 3, name: "JavaScript" },
+  { id: 4, name: "Vue3" },
+  { id: 5, name: "Python" },
+  { id: 6, name: "MySQL" },
+]);
+// 暗黑模式
+const isDark = ref(false);
+
+// 方法
+const toggleDetail = () => {
+  isShowDetail.value = !isShowDetail.value;
+};
+const toggleTheme = () => {
+  isDark.value = !isDark.value;
+};
+
+// 计算属性：过滤技能
+const filterSkillList = computed(() => {
+  if (!searchKey.value.trim()) return skillList.value;
+  const key = searchKey.value.toLowerCase();
+  return skillList.value.filter((skill) =>
+    skill.name.toLowerCase().includes(key),
+  );
+});
+
+// 侦听器：监听搜索框变化
+watch(searchKey, (newVal, oldVal) => {
+  console.log("搜索关键词变化，旧值：", oldVal, "新值：", newVal);
+});
+
+// 挂载完成生命周期
+onMounted(() => {
+  console.log("页面挂载完成！onMounted生命周期执行完毕。");
+});
+</script>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+div {
+  min-height: 100vh;
+  padding: 30px;
+  background: #f4f6f8;
+  font-family: "Microsoft Yahei", Arial, sans-serif;
+  transition: 0.3s all;
+}
+div.dark {
+  background: #22272e;
+  color: #eeeeee;
+}
+.card {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+div.dark .card {
+  background: #2d333b;
+}
+/*矩形头像框*/
+.avatar {
+  width: 110px;
+  height: 110px;
+  border: 3px solid #409eff;
+  border-radius: 0;
+  object-fit: cover;
+  display: block;
+}
+div.dark .avatar {
+  border-color: #60a5fa;
+}
+.header-box {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.info-item {
+  margin: 8px 0;
+  font-size: 15px;
+}
+.info-item strong {
+  display: inline-block;
+  min-width: 72px;
+}
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 6px 4px;
+  font-size: 14px;
+  transition: 0.25s;
+}
+.btn-primary {
+  background: #409eff;
+  color: #fff;
+}
+.btn-primary:hover {
+  background: #2563eb;
+}
+.btn-theme {
+  background: #8b5cf6;
+  color: #fff;
+}
+.btn-theme:hover {
+  background: #7c3aed;
+}
+.desc-block {
+  background: #f7f9fc;
+  padding: 14px;
+  border-radius: 10px;
+  margin-top: 16px;
+}
+div.dark .desc-block {
+  background: #374151;
+}
+hr {
+  border: none;
+  height: 1px;
+  background: #cbd5e1;
+  margin: 22px 0;
+}
+div.dark hr {
+  background: #4b5563;
+}
+.search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  margin: 12px 0;
+  font-size: 15px;
+}
+div.dark .search-input {
+  background: #374151;
+  border-color: #4b5563;
+  color: #fff;
+}
+.skill-tag {
+  display: inline-block;
+  background: #409eff;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin: 6px 4px;
+}
+</style>
