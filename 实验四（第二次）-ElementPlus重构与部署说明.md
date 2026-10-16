@@ -151,16 +151,31 @@ Element Plus 默认主色是 `#409EFF` 蓝色，直接引入会和本站靛蓝�
 
 **第 1 步：推送代码**（本地仓库已经初始化并提交好了，只差推送）
 
-在 `D:\vue\vue-project` 目录下执行：
+> ⚠️ 这台电脑上没有独立安装 Git，PowerShell 里直接敲 `git` 会报
+> 「无法将"git"项识别为 cmdlet…」。可用的 git 是 WorkBuddy 自带的 PortableGit，
+> 它位于 `D:\新建文件夹 (2)\WorkBuddy\resources\vendor\PortableGit`。
+> 只要把它临时加进当前会话的 PATH 就能用（关掉窗口即失效，不改系统设置）：
 
-```bash
-git push -u origin main
+```powershell
+# 1) 把 PortableGit 加进本次会话的 PATH
+$env:Path = "D:\新建文件夹 (2)\WorkBuddy\resources\vendor\PortableGit\mingw64\bin;" + `
+            "D:\新建文件夹 (2)\WorkBuddy\resources\vendor\PortableGit\cmd;" + $env:Path
+
+# 2) 确认 git 可用
+git --version
+
+# 3) 推送（第一次会弹出 GitHub 授权窗口，登录账号 duya13 即可）
+git -C D:\vue\vue-project push -u origin main
 ```
 
-第一次会弹出 GitHub 登录授权（浏览器登录或粘贴 Personal Access Token）。
-用 VS Code 打开这个文件夹，在「源代码管理」面板点「发布分支 / 同步」也一样。
+- 授权走的是 Git Credential Manager，登录成功后 token 会存进「Windows 凭据管理器」，
+  以后再推就不用重复登录了。
+- 用 VS Code 也可以：先让 VS Code 能识别 git（`Ctrl+,` 搜 `git.path`，
+  填 `D:\新建文件夹 (2)\WorkBuddy\resources\vendor\PortableGit\mingw64\bin\git.exe`），
+  再在「源代码管理」面板点「发布分支」。
+- 如果想一劳永逸（以后任何终端都能直接用 `git`），把上面那两个目录写进「用户环境变量 Path」即可。
 
-> 本地提交信息：`9df8176 feat: 实验四 —— Pinia 状态管理 + Element Plus 重构 + GitHub Pages 自动部署`
+> 本地提交（3 个）：`9df8176 feat…` → `a54a320 docs…` → `5ca1c31 docs…`
 > 远程已绑定：`origin → https://github.com/duya13/Yone-for-you.git`
 
 **第 2 步：在仓库里开启 Pages**
